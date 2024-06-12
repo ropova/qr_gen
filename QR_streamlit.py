@@ -18,7 +18,7 @@ def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=tamanio_modulo,
-        border=4,
+        border=2,
     )
     qr.add_data(data)
     qr.make(fit=True)
@@ -55,10 +55,13 @@ def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_
     imagen_mostrar.save(imagen_bytes, format='PNG')
     return imagen_bytes.getvalue()
 
+
 def generar_qr_desde_interfaz():
+    # Definimos el control deslizante fuera de la función
+    espacio_entre_logo_y_qr = st.sidebar.slider("Espacio entre logo y QR", min_value=-150, max_value=20, step=1, value=-20)
+
     logo_file = st.sidebar.file_uploader("Seleccionar logo (opcional)", type=["png", "jpg", "jpeg"])
     redimension_logo = st.sidebar.slider("Redimensión del Logo", min_value=0.1, max_value=1.0, step=0.05, value=0.8)
-    espacio_entre_logo_y_qr = st.sidebar.slider("Espacio entre logo y QR", min_value=-150, max_value=20, step=1, value=-20)
 
     st.header("QR para Página Web")
     url = st.text_input("URL", "https://magneticasg.com/nuestro-equipo/")
@@ -73,8 +76,8 @@ def generar_qr_desde_interfaz():
             st.error("Por favor, ingresa una URL válida.")
             return
         
-        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=15)
-        st.image(imagen_bytes, caption="Código QR generado")
+        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr + 20, tamanio_modulo=15)
+        st.image(imagen_bytes)
 
         st.download_button(
             label="Descargar QR",
@@ -83,14 +86,17 @@ def generar_qr_desde_interfaz():
             mime="image/png"
         )
     
-    # Mostrar previsualización en tiempo real
-    imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=20)
-    st.sidebar.image(imagen_bytes, caption="Previsualización del Código QR")
+    if nombre_archivo_qr and url:
+        # Mostrar previsualización en tiempo real
+        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=20)
+        st.sidebar.image(imagen_bytes, caption="Previsualización del Código QR")
 
 def generar_vcard_qr_desde_interfaz():
+    # Definimos el control deslizante fuera de la función
+    espacio_entre_logo_y_qr = st.sidebar.slider("Espacio entre logo y QR", min_value=-150, max_value=20, step=1, value=-20)
+
     logo_file = st.sidebar.file_uploader("Seleccionar logo (opcional)", type=["png", "jpg", "jpeg"])
     redimension_logo = st.sidebar.slider("Redimensión del Logo", min_value=0.1, max_value=1.0, step=0.05, value=0.8)
-    espacio_entre_logo_y_qr = st.sidebar.slider("Espacio entre logo y QR", min_value=-150, max_value=20, step=1, value=-20)
 
     st.header("QR Contacto y vCard")
     col1, col2 = st.columns(2)
@@ -122,8 +128,9 @@ def generar_vcard_qr_desde_interfaz():
         f"END:VCARD"
     )
 
-    imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr)
-    st.sidebar.image(imagen_bytes, caption="Previsualización del Código QR")
+    if nombres and apellidos and celular:
+        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr)
+        st.sidebar.image(imagen_bytes, caption="Previsualización del Código QR")
 
     if st.button("Generar"):
         if not (nombres and apellidos and celular):
@@ -155,8 +162,8 @@ def generar_vcard_qr_desde_interfaz():
             f"END:VCARD"
         )
 
-        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=8)
-        st.image(imagen_bytes, caption="Código QR generado")        
+        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr + 20, tamanio_modulo=8)
+        st.image(imagen_bytes)        
 
         # Guardar vCard como archivo .vcf
         vcard_bytes = vcard.encode('utf-8')
