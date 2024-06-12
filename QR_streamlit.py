@@ -4,22 +4,23 @@ from PIL import Image
 import validators
 import re
 import io
+import zipfile
 
 def load_css():
     with open("static/styles.css", "r") as f:
         css = f"<style>{f.read()}</style>"
         st.markdown(css, unsafe_allow_html=True)
 
-load_css()        
+load_css()
 
-def generar_qr(url, nombre_archivo=None, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_qr=0, margen_arriba=25, margen_abajo=25, margen_izquierda=20, margen_derecha=20, tamanio_modulo=10):
+def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_qr=0, margen_arriba=25, margen_abajo=25, margen_izquierda=20, margen_derecha=20, tamanio_modulo=10):
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=tamanio_modulo,
         border=4,
     )
-    qr.add_data(url)
+    qr.add_data(data)
     qr.make(fit=True)
     imagen_qr = qr.make_image(fill_color="black", back_color="white")
     
@@ -41,28 +42,18 @@ def generar_qr(url, nombre_archivo=None, redimension_logo=0.8, logo_file=None, e
             posicion_logo = ((nueva_imagen.size[0] - ancho_logo_redimensionado) // 2, margen_arriba)
             nueva_imagen.paste(logo_redimensionado, posicion_logo, logo_redimensionado)
             
-            if nombre_archivo:
-                nueva_imagen.save(nombre_archivo)
         except Exception as e:
             st.warning(f"Error al procesar el logo: {e}. Generando el código QR sin el logo.")
-            if nombre_archivo:
-                imagen_qr.save(nombre_archivo)
             imagen_mostrar = imagen_qr
         else:
             imagen_mostrar = nueva_imagen
     else:
-        if nombre_archivo:
-            imagen_qr.save(nombre_archivo)
         imagen_mostrar = imagen_qr
-    
-    if nombre_archivo:
-        st.success(f"El código QR ha sido generado y guardado como '{nombre_archivo}'.")
     
     # Convertir la imagen a bytes para mostrarla en Streamlit
     imagen_bytes = io.BytesIO()
     imagen_mostrar.save(imagen_bytes, format='PNG')
     return imagen_bytes.getvalue()
-
 
 def generar_qr_desde_interfaz():
     logo_file = st.sidebar.file_uploader("Seleccionar logo (opcional)", type=["png", "jpg", "jpeg"])
@@ -82,13 +73,19 @@ def generar_qr_desde_interfaz():
             st.error("Por favor, ingresa una URL válida.")
             return
         
-        imagen_bytes = generar_qr(url, nombre_archivo_qr + ".png", redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=20)
+        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=20)
         st.image(imagen_bytes, caption="Código QR generado")
+
+        st.download_button(
+            label="Descargar QR",
+            data=imagen_bytes,
+            file_name=nombre_archivo_qr + ".png",
+            mime="image/png"
+        )
     
-    if url and validators.url(url):
-        # Mostrar previsualización en tiempo real
-        imagen_bytes = generar_qr(url, None, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=20)
-        st.sidebar.image(imagen_bytes, caption="Previsualización del Código QR")
+    # Mostrar previsualización en tiempo real
+    imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=20)
+    st.sidebar.image(imagen_bytes, caption="Previsualización del Código QR")
 
 def generar_vcard_qr_desde_interfaz():
     logo_file = st.sidebar.file_uploader("Seleccionar logo (opcional)", type=["png", "jpg", "jpeg"])
@@ -112,8 +109,6 @@ def generar_vcard_qr_desde_interfaz():
 
     nombre_archivo_qr = st.text_input("Nombre del archivo", "vcard_qr_code")
 
-    #if nombres and apellidos and celular:
-        # Mostrar previsualización en tiempo real
     vcard = (
         f"BEGIN:VCARD\n"
         f"VERSION:3.0\n"
@@ -127,7 +122,7 @@ def generar_vcard_qr_desde_interfaz():
         f"END:VCARD"
     )
 
-    imagen_bytes = generar_qr(vcard, None, redimension_logo, logo_file, espacio_entre_logo_y_qr)
+    imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr)
     st.sidebar.image(imagen_bytes, caption="Previsualización del Código QR")
 
     if st.button("Generar"):
@@ -160,17 +155,27 @@ def generar_vcard_qr_desde_interfaz():
             f"END:VCARD"
         )
 
-        nombre_archivo_qr_vcard = nombre_archivo_qr + ".png"  
-        imagen_bytes = generar_qr(vcard, nombre_archivo_qr_vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr)
+        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr)
         st.image(imagen_bytes, caption="Código QR generado")
 
-        # Guardar vCard
-        ruta_guardado_vcard = nombre_archivo_qr + ".vcf"
-        with open(ruta_guardado_vcard, "w", encoding="utf-8") as vcard_file:
-            vcard_file.write(vcard)
-        st.success(f"La vCard ha sido generada y guardada como '{ruta_guardado_vcard}'.")
+        # Guardar vCard como archivo .vcf
+        vcard_bytes = vcard.encode('utf-8')
 
-
+        # Crear un archivo ZIP en memoria
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zf:
+            zf.writestr(nombre_archivo_qr + ".png", imagen_bytes)
+            zf.writestr(nombre_archivo_qr + ".vcf", vcard_bytes)
+        
+        zip_buffer.seek(0)
+        
+        # Descargar el archivo ZIP
+        st.download_button(
+            label="Descargar QR y vCard",
+            data=zip_buffer,
+            file_name=nombre_archivo_qr + ".zip",
+            mime="application/zip"
+        )
 
 def main():
     st.sidebar.title("Generador de Códigos QR")
