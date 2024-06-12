@@ -13,7 +13,7 @@ def load_css():
 
 load_css()
 
-def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_qr=0, margen_arriba=25, margen_abajo=25, margen_izquierda=20, margen_derecha=20, tamanio_modulo=10):
+def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_qr=0, margen_arriba=25, margen_abajo=25, margen_izquierda=20, margen_derecha=20, tamanio_modulo=1):
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -73,7 +73,7 @@ def generar_qr_desde_interfaz():
             st.error("Por favor, ingresa una URL válida.")
             return
         
-        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=20)
+        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=15)
         st.image(imagen_bytes, caption="Código QR generado")
 
         st.download_button(
@@ -155,8 +155,8 @@ def generar_vcard_qr_desde_interfaz():
             f"END:VCARD"
         )
 
-        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr)
-        st.image(imagen_bytes, caption="Código QR generado")
+        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=8)
+        st.image(imagen_bytes, caption="Código QR generado")        
 
         # Guardar vCard como archivo .vcf
         vcard_bytes = vcard.encode('utf-8')
