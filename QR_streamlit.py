@@ -13,12 +13,12 @@ def load_css():
 
 load_css()
 
-def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_qr=0, margen_arriba=25, margen_abajo=25, margen_izquierda=20, margen_derecha=20, tamanio_modulo=10):
+def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_qr=0, margen_arriba=0, margen_abajo=10, margen_izquierda=10, margen_derecha=10, tamanio_modulo=10):
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=tamanio_modulo,
-        border=2,
+        border=1,
     )
     qr.add_data(data)
     qr.make(fit=True)
@@ -57,15 +57,33 @@ def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_
 
 
 def generar_qr_desde_interfaz():
-    # Definimos el control deslizante fuera de la función
-    espacio_entre_logo_y_qr = st.sidebar.slider("Espacio entre logo y QR", min_value=-150, max_value=20, step=1, value=-20)
 
+    # Inicializar variables con valores predeterminados
+    redimension_logo = None
+    espacio_entre_logo_y_qr = None
+
+    # Subir archivo de logo
     logo_file = st.sidebar.file_uploader("Seleccionar logo (opcional)", type=["png", "jpg", "jpeg"])
-    redimension_logo = st.sidebar.slider("Redimensión del Logo", min_value=0.1, max_value=1.0, step=0.05, value=0.8)
+
+    # Verificar si se ha cargado una imagen
+    if logo_file is not None:
+        # Mostrar sliders solo si se ha cargado una imagen de logo
+        espacio_entre_logo_y_qr = st.sidebar.slider("Espacio entre logo y QR", min_value=-150, max_value=20, step=1, value=-20)
+        redimension_logo = st.sidebar.slider("Redimensión del Logo", min_value=0.1, max_value=1.0, step=0.05, value=0.8)
+
+    if logo_file is None:
+        espacio_entre_logo_y_qr = 0
+        redimension_logo = 0
+
+    # Código para centrar el subtítulo
+    st.sidebar.markdown("<h2 style='text-align: center;'>Previsualización QR</h2>", unsafe_allow_html=True) 
+    
 
     st.header("QR para Página Web")
-    url = st.text_input("URL", "https://magneticasg.com/nuestro-equipo/")
-    nombre_archivo_qr = st.text_input("Nombre del archivo", "qr_code.png")
+    url = st.text_input("\\* URL", "https://magneticasg.com/nuestro-equipo/")
+    nombre_archivo_qr = st.text_input("\\* Nombre del archivo", "qr_code.png")
+
+    st.markdown("<span style='color: red;'>* Campos obligatorios</span>", unsafe_allow_html=True)  
     
     if st.button("Generar"):
         if not nombre_archivo_qr:
@@ -76,7 +94,7 @@ def generar_qr_desde_interfaz():
             st.error("Por favor, ingresa una URL válida.")
             return
         
-        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr + 20, tamanio_modulo=15)
+        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr + 18, tamanio_modulo=15)
         st.image(imagen_bytes)
 
         st.download_button(
@@ -89,29 +107,55 @@ def generar_qr_desde_interfaz():
     if nombre_archivo_qr and url:
         # Mostrar previsualización en tiempo real
         imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=20)
-        st.sidebar.image(imagen_bytes, caption="Previsualización del Código QR")
+        st.sidebar.image(imagen_bytes)
+    else:
+        st.sidebar.markdown(
+            """
+            <div style="text-align: center; font-size: 12px; color: red">
+                <strong>* Para previsualizar, completa los campos obligatorios</strong>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )     
 
 def generar_vcard_qr_desde_interfaz():
-    # Definimos el control deslizante fuera de la función
-    espacio_entre_logo_y_qr = st.sidebar.slider("Espacio entre logo y QR", min_value=-150, max_value=20, step=1, value=-20)
 
+    # Inicializar variables con valores predeterminados
+    redimension_logo = None
+    espacio_entre_logo_y_qr = None
+
+    # Subir archivo de logo
     logo_file = st.sidebar.file_uploader("Seleccionar logo (opcional)", type=["png", "jpg", "jpeg"])
-    redimension_logo = st.sidebar.slider("Redimensión del Logo", min_value=0.1, max_value=1.0, step=0.05, value=0.8)
+
+    # Verificar si se ha cargado una imagen
+    if logo_file is not None:
+        # Mostrar sliders solo si se ha cargado una imagen de logo
+        espacio_entre_logo_y_qr = st.sidebar.slider("Espacio entre logo y QR", min_value=-150, max_value=20, step=1, value=-20)
+        redimension_logo = st.sidebar.slider("Redimensión del Logo", min_value=0.1, max_value=1.0, step=0.05, value=0.8)
+
+    if logo_file is None:
+        espacio_entre_logo_y_qr = 0
+        redimension_logo = 0
+
+    # Código para centrar el subtítulo
+    st.sidebar.markdown("<h2 style='text-align: center;'>Previsualización QR</h2>", unsafe_allow_html=True)       
 
     st.header("QR Contacto y vCard")
     col1, col2 = st.columns(2)
 
     with col1:
-        nombres = st.text_input("Nombres", "")
-        celular = st.text_input("Celular", "")
+        nombres = st.text_input("\\* Nombres", "")
+        celular = st.text_input("\\* Celular", "")
         empresa = st.text_input("Empresa", "")
         correo = st.text_input("Correo", "")
 
     with col2:
-        apellidos = st.text_input("Apellidos", "")
+        apellidos = st.text_input("\\* Apellidos", "")
         direccion = st.text_input("Dirección", "")
         ciudad = st.text_input("Ciudad", "")
         pagina_web = st.text_input("Página Web", "https://")
+
+    st.markdown("<span style='color: red;'>* Campos obligatorios</span>", unsafe_allow_html=True)        
 
     nombre_archivo_qr = st.text_input("Nombre del archivo", "vcard_qr_code")
 
@@ -130,7 +174,16 @@ def generar_vcard_qr_desde_interfaz():
 
     if nombres and apellidos and celular:
         imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr)
-        st.sidebar.image(imagen_bytes, caption="Previsualización del Código QR")
+        st.sidebar.image(imagen_bytes)
+    else:
+        st.sidebar.markdown(
+            """
+            <div style="text-align: center; font-size: 12px; color: red">
+                <strong>* Para previsualizar, completa los campos obligatorios</strong>
+            </div>
+            """,
+            unsafe_allow_html=True
+        ) 
 
     if st.button("Generar"):
         if not (nombres and apellidos and celular):
@@ -162,7 +215,7 @@ def generar_vcard_qr_desde_interfaz():
             f"END:VCARD"
         )
 
-        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr + 20, tamanio_modulo=8)
+        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr + 18, tamanio_modulo=8)
         st.image(imagen_bytes)        
 
         # Guardar vCard como archivo .vcf
