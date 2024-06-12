@@ -13,7 +13,7 @@ def load_css():
 
 load_css()
 
-def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_qr=0, margen_arriba=25, margen_abajo=25, margen_izquierda=20, margen_derecha=20, tamanio_modulo=1):
+def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_qr=0, margen_arriba=25, margen_abajo=25, margen_izquierda=20, margen_derecha=20, tamanio_modulo=10):
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
