@@ -99,7 +99,7 @@ def generar_qr_desde_interfaz():
 
     # Crear los expanders en la barra lateral
     expander_colores = st.sidebar.expander("Configuración de Colores QR")
-    expander_config_borde = st.sidebar.expander("Configuración de Borde")
+    #expander_config_borde = st.sidebar.expander("Configuración de Borde")
     expander_logo = st.sidebar.expander("Configuración del Logo")
 
     # Seleccionar color de relleno y fondo dentro del expander de configuración de colores
@@ -120,10 +120,10 @@ def generar_qr_desde_interfaz():
         logo_posicion = "Arriba"
 
     # Seleccionar grosor y color del borde dentro del expander
-    with expander_config_borde:
-        borde_color = st.color_picker("Color del borde", "#000000")
-        borde_grosor = st.slider("Grosor del borde", min_value=0, max_value=20, step=1, value=0)
-        radio_borde = st.slider("Radio del borde redondeado", min_value=0, max_value=50, step=1, value=0)
+    #with expander_config_borde:
+    #    borde_color = st.color_picker("Color del borde", "#000000")
+    #    borde_grosor = st.slider("Grosor del borde", min_value=0, max_value=20, step=1, value=0)
+    #    radio_borde = st.slider("Radio del borde redondeado", min_value=0, max_value=50, step=1, value=0)
 
     # Código para centrar el subtítulo
     st.sidebar.markdown("<h2 style='text-align: center;'>Previsualización QR</h2>", unsafe_allow_html=True) 
@@ -200,10 +200,10 @@ def generar_vcard_qr_desde_interfaz():
         logo_posicion = "Arriba"
 
     # Seleccionar grosor y color del borde dentro del expander
-    with expander_config_borde:
-        borde_color = st.color_picker("Color del borde", "#000000")
-        borde_grosor = st.slider("Grosor del borde", min_value=0, max_value=20, step=1, value=0)
-        radio_borde = st.slider("Radio del borde redondeado", min_value=0, max_value=50, step=1, value=0)
+    #with expander_config_borde:
+    #    borde_color = st.color_picker("Color del borde", "#000000")
+    #    borde_grosor = st.slider("Grosor del borde", min_value=0, max_value=20, step=1, value=0)
+    #    radio_borde = st.slider("Radio del borde redondeado", min_value=0, max_value=50, step=1, value=0)
 
     # Código para centrar el subtítulo
     st.sidebar.markdown("<h2 style='text-align: center;'>Previsualización QR</h2>", unsafe_allow_html=True) 
