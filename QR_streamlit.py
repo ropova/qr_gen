@@ -1,6 +1,6 @@
 import streamlit as st
 import qrcode
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 import validators
 import re
 import io
@@ -13,7 +13,7 @@ def load_css():
 
 load_css()
 
-def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_qr=0, margen_arriba=0, margen_abajo=10, margen_izquierda=10, margen_derecha=10, tamanio_modulo=10, logo_posicion="arriba", borde_grosor=0, borde_color="black", color_relleno="black", color_fondo="white"):
+def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_qr=0, margen_arriba=0, margen_abajo=10, margen_izquierda=10, margen_derecha=10, tamanio_modulo=10, logo_posicion="arriba", borde_grosor=0, borde_color="black", color_relleno="black", color_fondo="white", redondear_bordes=0):
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -22,7 +22,7 @@ def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_
     )
     qr.add_data(data)
     qr.make(fit=True)
-    imagen_qr = qr.make_image(fill_color=color_relleno, back_color=color_fondo)
+    imagen_qr = qr.make_image(fill_color=color_relleno, back_color=color_fondo).convert("RGBA")
     
     if logo_file:
         try:
@@ -34,8 +34,8 @@ def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_
             logo_redimensionado = logo.resize((ancho_logo_redimensionado, alto_logo_redimensionado), Image.LANCZOS)
 
             altura_total = alto_qr + alto_logo_redimensionado + espacio_entre_logo_y_qr + margen_arriba + margen_abajo
-            nueva_imagen = Image.new("RGB", (ancho_qr + margen_izquierda + margen_derecha, altura_total), "white")
-
+            nueva_imagen = Image.new("RGBA", (ancho_qr + margen_izquierda + margen_derecha, altura_total), color_fondo)
+            
             if logo_posicion == "arriba":
                 posicion_qr = (margen_izquierda, alto_logo_redimensionado + espacio_entre_logo_y_qr + margen_arriba)
                 nueva_imagen.paste(imagen_qr, posicion_qr)
@@ -58,38 +58,38 @@ def generar_qr(data, redimension_logo=0.8, logo_file=None, espacio_entre_logo_y_
     # Añadir borde a la imagen
     if borde_grosor > 0:
         ancho, alto = imagen_mostrar.size
-        nueva_imagen_con_borde = Image.new("RGB", (ancho + 2 * borde_grosor, alto + 2 * borde_grosor), borde_color)
-        nueva_imagen_con_borde.paste(imagen_mostrar, (borde_grosor, borde_grosor))
+        nueva_imagen_con_borde = Image.new("RGBA", (ancho + 2 * borde_grosor, alto + 2 * borde_grosor), color_fondo)
+        borde = Image.new("RGBA", (ancho + 2 * borde_grosor, alto + 2 * borde_grosor), borde_color)
+        nueva_imagen_con_borde.paste(borde, (0, 0), borde)
+        nueva_imagen_con_borde.paste(imagen_mostrar, (borde_grosor, borde_grosor), imagen_mostrar)
         imagen_mostrar = nueva_imagen_con_borde
+
+    # Redondear los bordes de la imagen
+    if redondear_bordes > 0:
+        mascara = Image.new("L", imagen_mostrar.size, 0)
+        dibujar = ImageDraw.Draw(mascara)
+        dibujar.rounded_rectangle([(0, 0), imagen_mostrar.size], radius=redondear_bordes, fill=255)
+        imagen_mostrar.putalpha(mascara)
 
     # Convertir la imagen a bytes para mostrarla en Streamlit
     imagen_bytes = io.BytesIO()
     imagen_mostrar.save(imagen_bytes, format='PNG')
     return imagen_bytes.getvalue()
 
-
 def generar_qr_desde_interfaz():
-
-    # Inicializar variables con valores predeterminados
     redimension_logo = None
-    espacio_entre_logo_y_qr = None    
-
-    # Subir archivo de logo
+    espacio_entre_logo_y_qr = None
     logo_file = st.sidebar.file_uploader("Seleccionar logo (opcional)", type=["png", "jpg", "jpeg"])    
 
-    # Crear los expanders en la barra lateral
     expander_colores = st.sidebar.expander("Configuración de Colores QR")
     expander_config_borde = st.sidebar.expander("Configuración de Borde")
     expander_logo = st.sidebar.expander("Configuración del Logo")
 
-    # Seleccionar color de relleno y fondo dentro del expander de configuración de colores
     with expander_colores:
         color_relleno = st.color_picker("Color de relleno del QR", "#000000")
         color_fondo = st.color_picker("Color de fondo del QR", "#FFFFFF")    
 
-    # Verificar si se ha cargado una imagen
     if logo_file is not None:
-        # Mostrar sliders solo si se ha cargado una imagen de logo dentro del expander
         with expander_logo:
             espacio_entre_logo_y_qr = st.slider("Espacio entre logo y QR", min_value=-150, max_value=20, step=1, value=-20)
             redimension_logo = st.slider("Redimensión del Logo", min_value=0.1, max_value=1.0, step=0.05, value=0.8)
@@ -99,12 +99,11 @@ def generar_qr_desde_interfaz():
         redimension_logo = 0
         logo_posicion = "Arriba"
 
-    # Seleccionar grosor y color del borde dentro del expander
     with expander_config_borde:
         borde_color = st.color_picker("Color del borde", "#000000")
-        borde_grosor = st.slider("Grosor del borde", min_value=0, max_value=20, step=1, value=0)
-
-    # Código para centrar el subtítulo
+        borde_grosor = st.slider("Grosor del borde", min_value=10, max_value=100, step=1, value=30)
+        redondear_bordes = st.slider("Radio de los bordes redondeados", min_value=0, max_value=50, step=1, value=0)
+        
     st.sidebar.markdown("<h2 style='text-align: center;'>Previsualización QR</h2>", unsafe_allow_html=True) 
     
 
@@ -123,7 +122,7 @@ def generar_qr_desde_interfaz():
             st.error("Por favor, ingresa una URL válida.")
             return
         
-        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr + 18, tamanio_modulo=15, logo_posicion=logo_posicion.lower(), borde_grosor=borde_grosor, borde_color=borde_color, color_relleno=color_relleno, color_fondo=color_fondo)
+        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr + 18, tamanio_modulo=15, logo_posicion=logo_posicion.lower(), borde_grosor=borde_grosor, borde_color=borde_color, color_relleno=color_relleno, color_fondo=color_fondo, redondear_bordes=redondear_bordes)
         st.image(imagen_bytes)
 
         st.download_button(
@@ -134,8 +133,7 @@ def generar_qr_desde_interfaz():
         )
     
     if nombre_archivo_qr and url:
-        # Mostrar previsualización en tiempo real
-        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=20, logo_posicion=logo_posicion.lower(), borde_grosor=borde_grosor, borde_color=borde_color, color_relleno=color_relleno, color_fondo=color_fondo)
+        imagen_bytes = generar_qr(url, redimension_logo, logo_file, espacio_entre_logo_y_qr, tamanio_modulo=20, logo_posicion=logo_posicion.lower(), borde_grosor=borde_grosor, borde_color=borde_color, color_relleno=color_relleno, color_fondo=color_fondo, redondear_bordes=redondear_bordes)
         st.sidebar.image(imagen_bytes)
     else:
         st.sidebar.markdown(
@@ -148,27 +146,19 @@ def generar_qr_desde_interfaz():
         )     
 
 def generar_vcard_qr_desde_interfaz():
-
-    # Inicializar variables con valores predeterminados
     redimension_logo = None
-    espacio_entre_logo_y_qr = None    
-
-    # Subir archivo de logo
+    espacio_entre_logo_y_qr = None
     logo_file = st.sidebar.file_uploader("Seleccionar logo (opcional)", type=["png", "jpg", "jpeg"])    
 
-    # Crear los expanders en la barra lateral
     expander_colores = st.sidebar.expander("Configuración de Colores QR")
     expander_config_borde = st.sidebar.expander("Configuración de Borde")
     expander_logo = st.sidebar.expander("Configuración del Logo")
 
-    # Seleccionar color de relleno y fondo dentro del expander de configuración de colores
     with expander_colores:
         color_relleno = st.color_picker("Color de relleno del QR", "#000000")
         color_fondo = st.color_picker("Color de fondo del QR", "#FFFFFF")    
 
-    # Verificar si se ha cargado una imagen
     if logo_file is not None:
-        # Mostrar sliders solo si se ha cargado una imagen de logo dentro del expander
         with expander_logo:
             espacio_entre_logo_y_qr = st.slider("Espacio entre logo y QR", min_value=-150, max_value=20, step=1, value=-20)
             redimension_logo = st.slider("Redimensión del Logo", min_value=0.1, max_value=1.0, step=0.05, value=0.8)
@@ -178,12 +168,11 @@ def generar_vcard_qr_desde_interfaz():
         redimension_logo = 0
         logo_posicion = "Arriba"
 
-    # Seleccionar grosor y color del borde dentro del expander
     with expander_config_borde:
         borde_color = st.color_picker("Color del borde", "#000000")
-        borde_grosor = st.slider("Grosor del borde", min_value=0, max_value=20, step=1, value=0)
+        borde_grosor = st.slider("Grosor del borde", min_value=10, max_value=100, step=1, value=30)
+        redondear_bordes = st.slider("Radio de los bordes redondeados", min_value=0, max_value=50, step=1, value=0)
 
-    # Código para centrar el subtítulo
     st.sidebar.markdown("<h2 style='text-align: center;'>Previsualización QR</h2>", unsafe_allow_html=True) 
 
     st.header("QR de Contacto y vCard")
@@ -220,7 +209,7 @@ def generar_vcard_qr_desde_interfaz():
     )
 
     if nombres and apellidos and celular:
-        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr, logo_posicion=logo_posicion.lower(), borde_grosor=borde_grosor, borde_color=borde_color, color_relleno=color_relleno, color_fondo=color_fondo)
+        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr, logo_posicion=logo_posicion.lower(), borde_grosor=borde_grosor, borde_color=borde_color, color_relleno=color_relleno, color_fondo=color_fondo, redondear_bordes=redondear_bordes)
         st.sidebar.image(imagen_bytes)
     else:
         st.sidebar.markdown(
@@ -262,13 +251,11 @@ def generar_vcard_qr_desde_interfaz():
             f"END:VCARD"
         )
 
-        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr + 18, tamanio_modulo=8, logo_posicion=logo_posicion.lower(), borde_grosor=borde_grosor, borde_color=borde_color, color_relleno=color_relleno, color_fondo=color_fondo)
+        imagen_bytes = generar_qr(vcard, redimension_logo, logo_file, espacio_entre_logo_y_qr + 18, tamanio_modulo=8, logo_posicion=logo_posicion.lower(), borde_grosor=borde_grosor, borde_color=borde_color, color_relleno=color_relleno, color_fondo=color_fondo, redondear_bordes=redondear_bordes)
         st.image(imagen_bytes)        
 
-        # Guardar vCard como archivo .vcf
         vcard_bytes = vcard.encode('utf-8')
 
-        # Crear un archivo ZIP en memoria
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zf:
             zf.writestr(nombre_archivo_qr + ".png", imagen_bytes)
@@ -276,7 +263,6 @@ def generar_vcard_qr_desde_interfaz():
         
         zip_buffer.seek(0)
         
-        # Descargar el archivo ZIP
         st.download_button(
             label="Descargar QR y vCard",
             data=zip_buffer,
